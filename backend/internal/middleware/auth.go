@@ -7,6 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+
+	"github.com/shitcord/backend/internal/database"
+	"github.com/shitcord/backend/internal/models"
 )
 
 // AuthRequired returns middleware that validates JWT tokens
@@ -116,4 +119,32 @@ func GetUsername(c *fiber.Ctx) string {
 		return ""
 	}
 	return username
+}
+
+// AdminRequired returns middleware that checks if the user is an admin.
+// Must be used after AuthRequired so userID is in context.
+func AdminRequired() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userID := GetUserID(c)
+		if userID == uuid.Nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Unauthorized",
+			})
+		}
+
+		var user models.User
+		if err := database.DB.First(&user, "id = ?", userID).Error; err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "User not found",
+			})
+		}
+
+		if !user.IsAdmin {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "Admin access required",
+			})
+		}
+
+		return c.Next()
+	}
 }

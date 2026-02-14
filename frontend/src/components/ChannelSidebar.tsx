@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
 import { channelAPI, serverAPI } from '../api/client'
@@ -7,6 +8,7 @@ import type { Channel } from '../types'
 export default function ChannelSidebar() {
   const { currentServer, currentChannel, setCurrentChannel, setCurrentServer, removeServer } = useChatStore()
   const { user, logout } = useAuthStore()
+  const navigate = useNavigate()
   const [showCreateChannel, setShowCreateChannel] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
 
@@ -105,6 +107,11 @@ export default function ChannelSidebar() {
         <button onClick={logout} title="Logout" style={{ fontSize: '1.1rem', padding: '4px' }}>
           ⏏
         </button>
+        {user?.is_admin && (
+          <button onClick={() => navigate('/admin')} title="Admin Panel" style={{ fontSize: '1.1rem', padding: '4px' }}>
+            🛡️
+          </button>
+        )}
       </div>
 
       {showCreateChannel && (

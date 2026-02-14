@@ -10,13 +10,13 @@ import IncomingCallModal from '../components/IncomingCallModal'
 import DMCallView from '../components/DMCallView'
 import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
-import { serverAPI } from '../api/client'
+import { serverAPI, userAPI } from '../api/client'
 import { wsService } from '../services/websocket'
 import { useMobile } from '../hooks/useMobile'
 
 export default function MainLayout() {
   const { setServers, currentServer, currentChannel, currentDMChannel, activeDMCall, incomingCall, setCurrentChannel, setCurrentDMChannel } = useChatStore()
-  const { user } = useAuthStore()
+  const { user, setUser } = useAuthStore()
   const isMobile = useMobile()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
@@ -48,10 +48,19 @@ export default function MainLayout() {
         console.error('Failed to load servers:', err)
       }
     }
+    const refreshUser = async () => {
+      try {
+        const { data } = await userAPI.getMe()
+        setUser(data)
+      } catch (err) {
+        console.error('Failed to refresh user:', err)
+      }
+    }
     loadServers()
+    refreshUser()
     wsService.connect()
     return () => { wsService.disconnect() }
-  }, [setServers])
+  }, [setServers, setUser])
 
   useEffect(() => {
     if (currentServer) {

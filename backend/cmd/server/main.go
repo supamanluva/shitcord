@@ -136,6 +136,13 @@ func main() {
 	voice.Post("/join/:channelId", handlers.JoinVoiceChannel)
 	voice.Post("/leave/:channelId", handlers.LeaveVoiceChannel)
 
+	// Admin routes (requires admin)
+	admin := protected.Group("/admin", middleware.AdminRequired())
+	admin.Get("/pending-users", handlers.GetPendingUsers)
+	admin.Get("/users", handlers.GetAllUsers)
+	admin.Post("/approve/:id", handlers.ApproveUser)
+	admin.Post("/reject/:id", handlers.RejectUser)
+
 	// WebSocket endpoint
 	app.Use("/ws", middleware.AuthWSUpgrade())
 	app.Get("/ws", ws.HandleWebSocket(hub))

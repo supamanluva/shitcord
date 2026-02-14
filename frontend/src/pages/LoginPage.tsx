@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [pending, setPending] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { setTokens, setUser } = useAuthStore()
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+    setPending(false)
     setLoading(true)
 
     try {
@@ -31,8 +33,12 @@ export default function LoginPage() {
 
       navigate('/')
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } }
-      setError(axiosErr.response?.data?.error || 'Login failed')
+      const axiosErr = err as { response?: { data?: { error?: string; pending?: boolean } } }
+      if (axiosErr.response?.data?.pending) {
+        setPending(true)
+      } else {
+        setError(axiosErr.response?.data?.error || 'Login failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -45,6 +51,11 @@ export default function LoginPage() {
         <p className="subtitle">Welcome back!</p>
 
         {error && <div className="error-message">{error}</div>}
+        {pending && (
+          <div className="pending-approval-inline">
+            ⏳ Your account is pending admin approval. Please check back later.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

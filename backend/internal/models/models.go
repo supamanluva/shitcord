@@ -18,6 +18,8 @@ type User struct {
 	Status       string         `gorm:"size:16;default:'offline'" json:"status"` // online, offline, idle, dnd
 	Bio          string         `gorm:"size:512" json:"bio"`
 	PublicKey    string         `gorm:"type:text" json:"public_key"` // E2E encryption public key
+	IsApproved   bool           `gorm:"default:false" json:"is_approved"`
+	IsAdmin      bool           `gorm:"default:false" json:"is_admin"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
 import { dmAPI } from '../api/client'
@@ -6,6 +7,7 @@ import type { DMChannel } from '../types'
 
 export default function DMSidebar() {
   const { user, logout } = useAuthStore()
+  const navigate = useNavigate()
   const {
     dmChannels, setDMChannels, currentDMChannel, setCurrentDMChannel,
   } = useChatStore()
@@ -90,6 +92,11 @@ export default function DMSidebar() {
         <button onClick={logout} title="Logout" style={{ fontSize: '1.1rem', padding: '4px' }}>
           ⏏
         </button>
+        {user?.is_admin && (
+          <button onClick={() => navigate('/admin')} title="Admin Panel" style={{ fontSize: '1.1rem', padding: '4px' }}>
+            🛡️
+          </button>
+        )}
       </div>
 
       {showNewDM && (

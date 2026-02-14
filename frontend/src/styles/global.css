@@ -2126,3 +2126,225 @@ html.is-mobile .message-input-wrapper textarea {
   color: var(--text-primary);
   text-decoration: none;
 }
+
+/* ==============================
+   Admin Panel
+   ============================== */
+.admin-panel {
+  min-height: 100dvh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.admin-back-btn {
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.admin-back-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--bg-tertiary);
+  padding-bottom: 0.5rem;
+}
+
+.admin-tab {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.15s;
+}
+
+.admin-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.admin-tab.active {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.admin-loading,
+.admin-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.admin-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-user-card {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.admin-user-name {
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-user-email {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-user-date {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.admin-user-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.admin-btn {
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+
+.admin-btn:hover {
+  opacity: 0.85;
+}
+
+.admin-btn.approve {
+  background: #43b581;
+  color: white;
+}
+
+.admin-btn.reject {
+  background: #f04747;
+  color: white;
+}
+
+.admin-badge {
+  background: #faa61a;
+  color: #1a1a2e;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-status {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+}
+
+.admin-status.approved {
+  color: #43b581;
+}
+
+.admin-status.pending {
+  color: #faa61a;
+}
+
+/* Pending approval message on register/login pages */
+.pending-approval {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.pending-approval .pending-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.pending-approval h2 {
+  margin: 0 0 0.75rem;
+  color: var(--text-primary);
+}
+
+.pending-approval p {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.pending-approval-inline {
+  background: rgba(250, 166, 26, 0.15);
+  border: 1px solid rgba(250, 166, 26, 0.3);
+  color: #faa61a;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Admin panel mobile tweaks */
+@media (max-width: 600px) {
+  .admin-panel {
+    padding: 1rem;
+  }
+
+  .admin-user-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-user-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

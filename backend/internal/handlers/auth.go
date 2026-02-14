@@ -79,7 +79,9 @@ func Register(c *fiber.Ctx) error {
 		Email:        req.Email,
 		PasswordHash: string(hash),
 		DisplayName:  req.Username,
-		Status:       "online",
+		Status:       "offline",
+		IsApproved:   false,
+		IsAdmin:      false,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
@@ -88,18 +90,10 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	// Generate tokens
-	token, refreshToken, err := generateTokenPair(user)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to generate token",
-		})
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(AuthResponse{
-		Token:        token,
-		RefreshToken: refreshToken,
-		User:         user,
+	// Don't issue tokens — user must be approved first
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message":  "Account created! Please wait for an admin to approve your account.",
+		"pending":  true,
 	})
 }
 
@@ -122,6 +116,14 @@ func Login(c *fiber.Ctx) error {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid email or password",
+		})
+	}
+
+	// Check if user is approved
+	if !user.IsApproved {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error":   "Your account is pending approval. Please wait for an admin to approve it.",
+			"pending": true,
 		})
 	}
 

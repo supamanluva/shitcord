@@ -133,3 +133,11 @@ export const voiceAPI = {
   joinVoice: (channelId: string) => api.post(`/voice/join/${channelId}`),
   leaveVoice: (channelId: string) => api.post(`/voice/leave/${channelId}`),
 }
+
+// Admin API
+export const adminAPI = {
+  getPendingUsers: () => api.get('/admin/pending-users'),
+  getAllUsers: () => api.get('/admin/users'),
+  approveUser: (id: string) => api.post(`/admin/approve/${id}`),
+  rejectUser: (id: string) => api.post(`/admin/reject/${id}`),
+}

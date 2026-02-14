@@ -9,6 +9,8 @@ export interface User {
   status: 'online' | 'offline' | 'idle' | 'dnd'
   bio: string
   public_key: string
+  is_approved: boolean
+  is_admin: boolean
   created_at: string
 }
 
