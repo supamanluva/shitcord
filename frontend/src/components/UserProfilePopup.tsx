@@ -3,6 +3,7 @@ import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
 import { dmAPI } from '../api/client'
 import { wsService } from '../services/websocket'
+import { ringToneService } from '../services/ringtone'
 import type { User, DMChannel } from '../types'
 
 interface UserProfilePopupProps {
@@ -48,6 +49,9 @@ export default function UserProfilePopup({ targetUser, position, onClose }: User
         remoteUserId: targetUser.id,
         callType,
       })
+
+      // Start outgoing ring tone so caller knows it's ringing
+      ringToneService.startOutgoingRing()
 
       onClose()
     } catch (err) {

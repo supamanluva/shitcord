@@ -294,6 +294,17 @@ func LeaveServer(c *fiber.Ctx) error {
 
 	database.DB.Where("server_id = ? AND user_id = ?", serverID, userID).Delete(&models.ServerMember{})
 
+	// Broadcast MEMBER_LEAVE to server members
+	if ws.GlobalHub != nil {
+		var user models.User
+		database.DB.First(&user, "id = ?", userID)
+		ws.GlobalHub.BroadcastToServer(serverID.String(), ws.EventMemberLeave, map[string]interface{}{
+			"server_id": serverID,
+			"user_id":   userID,
+			"username":  user.Username,
+		}, uuid.Nil)
+	}
+
 	return c.JSON(fiber.Map{"message": "Left server successfully"})
 }
 

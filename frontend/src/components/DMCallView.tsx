@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
 import { wsService } from '../services/websocket'
+import { ringToneService } from '../services/ringtone'
 import { webrtcService } from '../services/webrtc'
 
 export default function DMCallView() {
@@ -42,6 +43,8 @@ export default function DMCallView() {
             remoteVideoRef.current.srcObject = stream
           }
           setIsConnected(true)
+          // Call connected — stop any ring tone
+          ringToneService.stopAll()
         })
 
         webrtcService.setOnPeerDisconnected(() => {
@@ -81,6 +84,7 @@ export default function DMCallView() {
   }, [activeDMCall?.dmChannelId])
 
   const handleEndCall = () => {
+    ringToneService.stopAll()
     if (activeDMCall) {
       wsService.sendDMCallEnd(activeDMCall.remoteUserId, activeDMCall.dmChannelId)
     }

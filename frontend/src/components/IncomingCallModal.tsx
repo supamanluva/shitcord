@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
 import { wsService } from '../services/websocket'
+import { ringToneService } from '../services/ringtone'
 import { webrtcService } from '../services/webrtc'
 
 export default function IncomingCallModal() {
@@ -27,6 +28,9 @@ export default function IncomingCallModal() {
 
   const handleAccept = async () => {
     try {
+      // Stop the ring tone
+      ringToneService.stopAll()
+
       // Find the DM channel
       const dm = dmChannels.find((d) => d.id === incomingCall.dmChannelId)
       if (dm) {
@@ -50,6 +54,7 @@ export default function IncomingCallModal() {
   }
 
   const handleReject = () => {
+    ringToneService.stopAll()
     wsService.sendDMCallReject(incomingCall.fromUserId, incomingCall.dmChannelId)
     setIncomingCall(null)
   }

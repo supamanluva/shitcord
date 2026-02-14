@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useChatStore } from '../stores/chatStore'
 import { serverAPI } from '../api/client'
+import { wsService } from '../services/websocket'
 import UserProfilePopup from './UserProfilePopup'
 import type { User } from '../types'
 
@@ -22,6 +23,23 @@ export default function MemberList() {
     }
 
     loadMembers()
+  }, [currentServer, setMembers])
+
+  // Re-fetch members when someone joins/leaves
+  useEffect(() => {
+    if (!currentServer) return
+    const serverId = currentServer.id
+    const handleMemberChange = () => {
+      serverAPI.getMembers(serverId).then(({ data }) => {
+        setMembers(serverId, data)
+      }).catch(() => {})
+    }
+    wsService.on('MEMBER_JOIN', handleMemberChange)
+    wsService.on('MEMBER_LEAVE', handleMemberChange)
+    return () => {
+      wsService.off('MEMBER_JOIN', handleMemberChange)
+      wsService.off('MEMBER_LEAVE', handleMemberChange)
+    }
   }, [currentServer, setMembers])
 
   if (!currentServer) return null

@@ -3,6 +3,7 @@ import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
 import { messageAPI, uploadAPI, dmAPI, serverAPI } from '../api/client'
 import { wsService } from '../services/websocket'
+import { ringToneService } from '../services/ringtone'
 import { encryptionService } from '../services/encryption'
 import type { Message } from '../types'
 
@@ -43,6 +44,23 @@ export default function ChatArea({ onMobileMenuToggle }: { onMobileMenuToggle?: 
       }
     }
     loadMembers()
+  }, [currentServer, setMembers])
+
+  // Re-fetch members when someone joins/leaves (belt-and-suspenders with WS handler)
+  useEffect(() => {
+    if (!currentServer) return
+    const serverId = currentServer.id
+    const handleMemberChange = () => {
+      serverAPI.getMembers(serverId).then(({ data }) => {
+        setMembers(serverId, data)
+      }).catch(() => {})
+    }
+    wsService.on('MEMBER_JOIN', handleMemberChange)
+    wsService.on('MEMBER_LEAVE', handleMemberChange)
+    return () => {
+      wsService.off('MEMBER_JOIN', handleMemberChange)
+      wsService.off('MEMBER_LEAVE', handleMemberChange)
+    }
   }, [currentServer, setMembers])
 
   // Load messages when channel changes
@@ -178,6 +196,8 @@ export default function ChatArea({ onMobileMenuToggle }: { onMobileMenuToggle?: 
       remoteUserId: dmOtherUser.id,
       callType,
     })
+    // Start outgoing ring tone so caller knows it's ringing
+    ringToneService.startOutgoingRing()
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -471,6 +491,18 @@ function MessageItem({
   })
 
   const authorColor = stringToColor(message.author?.username || '')
+
+  // System messages (e.g. member join/leave) render as simple inline text
+  if (message.type === 'system' || message.author_id === 'system') {
+    return (
+      <div className="message system-message">
+        <div className="system-message-content">
+          <span className="system-message-text">{message.content}</span>
+          <span className="timestamp" title={fullDate}>{timestamp}</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

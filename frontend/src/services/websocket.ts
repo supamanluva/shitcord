@@ -7,6 +7,7 @@
 
 import { useAuthStore } from '../stores/authStore'
 import { useChatStore } from '../stores/chatStore'
+import { ringToneService } from './ringtone'
 import type { Message, WSMessage } from '../types'
 
 type EventHandler = (data: unknown) => void
@@ -247,11 +248,56 @@ class WebSocketService {
       case 'MEMBER_JOIN': {
         const data = msg.data as { server_id: string; member: import('../types').ServerMember }
         if (data.server_id && data.member) {
-          const existing = chatStore.members[data.server_id] || []
+          // Use fresh state to avoid stale closures
+          const freshState = useChatStore.getState()
+          const existing = freshState.members[data.server_id] || []
           // Only add if not already present
           if (!existing.find((m) => m.user_id === data.member.user_id)) {
-            chatStore.setMembers(data.server_id, [...existing, data.member])
+            freshState.setMembers(data.server_id, [...existing, data.member])
           }
+          // Also add a system message in the current channel so it's visible
+          const currentServer = freshState.currentServer
+          const currentChannel = freshState.currentChannel
+          if (currentServer && currentServer.id === data.server_id && currentChannel) {
+            const username = data.member.user?.display_name || data.member.user?.username || 'Someone'
+            const systemMsg: Message = {
+              id: `system-join-${Date.now()}`,
+              channel_id: currentChannel.id,
+              author_id: 'system',
+              content: `📥 **${username}** has joined the server!`,
+              nonce: '',
+              encryption_header: '',
+              type: 'system',
+              is_edited: false,
+              is_pinned: false,
+              author: {
+                id: 'system',
+                username: 'System',
+                email: '',
+                display_name: 'System',
+                avatar_url: '',
+                status: 'online',
+                bio: '',
+                public_key: '',
+                is_approved: true,
+                is_admin: false,
+                created_at: new Date().toISOString(),
+              },
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+            freshState.addMessage(currentChannel.id, systemMsg)
+          }
+        }
+        break
+      }
+
+      case 'MEMBER_LEAVE': {
+        const data = msg.data as { server_id: string; user_id: string; username?: string }
+        if (data.server_id) {
+          const freshState = useChatStore.getState()
+          const existing = freshState.members[data.server_id] || []
+          freshState.setMembers(data.server_id, existing.filter((m) => m.user_id !== data.user_id))
         }
         break
       }
@@ -264,11 +310,20 @@ class WebSocketService {
           dmChannelId: data.dm_channel_id,
           callType: data.call_type,
         })
+        // Play incoming ring tone
+        ringToneService.startIncomingRing()
+        break
+      }
+
+      case 'DM_CALL_ACCEPT': {
+        // Remote user accepted — stop outgoing ring
+        ringToneService.stopAll()
         break
       }
 
       case 'DM_CALL_REJECT':
       case 'DM_CALL_END': {
+        ringToneService.stopAll()
         chatStore.setIncomingCall(null)
         chatStore.setActiveDMCall(null)
         break
