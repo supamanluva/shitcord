@@ -163,8 +163,8 @@ export default function VoiceChannel({ onMobileMenuToggle }: { onMobileMenuToggl
         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
           {participants.length} participant{participants.length !== 1 ? 's' : ''}
         </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--accent-success)' }}>🔒 Encrypted P2P</span>
+        <div className="chat-header-actions">
+          <span className="header-encrypted-badge">🔒 Encrypted P2P</span>
         </div>
       </div>
 

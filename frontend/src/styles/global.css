@@ -472,11 +472,16 @@ input::placeholder, textarea::placeholder {
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-secondary);
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .chat-header .channel-name {
   font-weight: 700;
   font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .chat-header .channel-topic {
@@ -503,6 +508,12 @@ input::placeholder, textarea::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--bg-tertiary);
+  transition: background 0.15s;
+}
+
+.header-call-btn:hover {
+  background: var(--bg-active);
 }
 
 .header-encrypted-badge {
@@ -1132,12 +1143,17 @@ input::placeholder, textarea::placeholder {
 
   /* Chat header adjustments */
   .chat-header {
-    padding: 0 12px;
-    gap: 8px;
+    padding: 0 8px;
+    gap: 6px;
+    height: auto;
+    min-height: 48px;
+    overflow: visible;
   }
 
   .chat-header .channel-name {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    flex: 1;
+    min-width: 0;
   }
 
   .chat-header .channel-topic {
@@ -1151,13 +1167,16 @@ input::placeholder, textarea::placeholder {
 
   /* Ensure call buttons have good tap targets */
   .header-call-btn {
-    min-width: 40px;
-    min-height: 40px;
-    font-size: 1.2rem;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.3rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
   }
 
   .chat-header-actions {
-    gap: 4px;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   /* Messages padding */
