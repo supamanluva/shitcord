@@ -1,0 +1,50 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.local
+
+# Dependencies
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go compiled binaries
+backend/shitcord
+backend/shitcord-server
+backend/shitcord-api
+backend/tmp/
+*.exe
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads (user content)
+backend/uploads/*
+uploads/*
+!uploads/.gitkeep
+!backend/uploads/.gitkeep
+
+# Logs
+*.log
+/tmp/
+
+# Docker
+postgres_data/
+
+# Misc
+*.pem
+*.key
+*.crt
+backend/server
