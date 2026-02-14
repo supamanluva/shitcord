@@ -644,8 +644,8 @@ function MembersPanel({ serverId, members, onlineUsers, onClose }: {
   onlineUsers: Set<string>
   onClose: () => void
 }) {
-  const online = members.filter(m => onlineUsers.has(m.user_id) || m.user?.status === 'online')
-  const offline = members.filter(m => !onlineUsers.has(m.user_id) && m.user?.status !== 'online')
+  const online = members.filter(m => onlineUsers.has(m.user_id))
+  const offline = members.filter(m => !onlineUsers.has(m.user_id))
 
   const roleBadge = (role: string) => {
     switch (role) {

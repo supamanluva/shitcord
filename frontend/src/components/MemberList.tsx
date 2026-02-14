@@ -47,10 +47,10 @@ export default function MemberList() {
   const serverMembers = members[currentServer.id] || []
 
   const onlineMembers = serverMembers.filter(
-    (m) => onlineUsers.has(m.user_id) || m.user?.status === 'online'
+    (m) => onlineUsers.has(m.user_id)
   )
   const offlineMembers = serverMembers.filter(
-    (m) => !onlineUsers.has(m.user_id) && m.user?.status !== 'online'
+    (m) => !onlineUsers.has(m.user_id)
   )
 
   const getRoleBadge = (role: string) => {

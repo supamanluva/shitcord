@@ -195,9 +195,18 @@ class WebSocketService {
     const chatStore = useChatStore.getState()
 
     switch (msg.event) {
-      case 'READY':
+      case 'READY': {
         console.log('✓ WebSocket ready')
+        const readyData = msg.data as { online_users?: string[] }
+        if (readyData.online_users) {
+          // Seed the online users set with everyone currently connected
+          const freshStore = useChatStore.getState()
+          for (const uid of readyData.online_users) {
+            freshStore.setUserOnline(uid)
+          }
+        }
         break
+      }
 
       case 'HEARTBEAT_ACK':
         // Heartbeat acknowledged

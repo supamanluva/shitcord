@@ -52,7 +52,7 @@ func Connect() error {
 
 // Migrate runs auto-migrations for all models
 func Migrate() error {
-	return DB.AutoMigrate(
+	err := DB.AutoMigrate(
 		&models.User{},
 		&models.UserPublicKey{},
 		&models.Server{},
@@ -63,6 +63,14 @@ func Migrate() error {
 		&models.VoiceState{},
 		&models.Invite{},
 	)
+	if err != nil {
+		return err
+	}
+
+	// Reset all users to offline on startup (clean slate)
+	DB.Model(&models.User{}).Where("status != ?", "offline").Update("status", "offline")
+
+	return nil
 }
 
 func getEnv(key, fallback string) string {

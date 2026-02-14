@@ -9,6 +9,9 @@ import (
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+
+	"github.com/shitcord/backend/internal/database"
+	"github.com/shitcord/backend/internal/models"
 )
 
 // Event types for WebSocket messages
@@ -98,17 +101,56 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.mu.Lock()
 			h.clients[client.ID] = client
+
+			// Collect all currently online user IDs
+			onlineIDs := make([]string, 0, len(h.clients))
+			for id := range h.clients {
+				onlineIDs = append(onlineIDs, id.String())
+			}
 			h.mu.Unlock()
 			log.Printf("Client connected: %s (%s)", client.Username, client.ID)
 
-			// Send READY event
+			// Update DB status to online
+			if database.DB != nil {
+				database.DB.Model(&models.User{}).Where("id = ?", client.ID).Update("status", "online")
+			}
+
+			// Send READY event with online user list
+			readyData, _ := json.Marshal(map[string]interface{}{
+				"status":     "connected",
+				"online_users": onlineIDs,
+			})
 			readyMsg := WSMessage{
 				Event:     EventReady,
-				Data:      json.RawMessage(`{"status": "connected"}`),
+				Data:      readyData,
 				Timestamp: time.Now().UnixMilli(),
 			}
 			data, _ := json.Marshal(readyMsg)
 			client.Send <- data
+
+			// Broadcast online presence to all other clients
+			presenceMsg := WSMessage{
+				Event:     EventPresence,
+				Timestamp: time.Now().UnixMilli(),
+			}
+			presenceOnline, _ := json.Marshal(map[string]interface{}{
+				"user_id":  client.ID,
+				"username": client.Username,
+				"status":   "online",
+			})
+			presenceMsg.Data = presenceOnline
+			onlineBytes, _ := json.Marshal(presenceMsg)
+
+			h.mu.RLock()
+			for id, c := range h.clients {
+				if id != client.ID {
+					select {
+					case c.Send <- onlineBytes:
+					default:
+					}
+				}
+			}
+			h.mu.RUnlock()
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -128,6 +170,11 @@ func (h *Hub) Run() {
 			}
 			h.mu.Unlock()
 			log.Printf("Client disconnected: %s (%s)", client.Username, client.ID)
+
+			// Update DB status to offline
+			if database.DB != nil {
+				database.DB.Model(&models.User{}).Where("id = ?", client.ID).Update("status", "offline")
+			}
 
 			// Broadcast offline status
 			presenceMsg := WSMessage{
