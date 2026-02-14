@@ -5,7 +5,7 @@ import { dmAPI } from '../api/client'
 import type { DMChannel } from '../types'
 
 export default function DMSidebar() {
-  const { user } = useAuthStore()
+  const { user, logout } = useAuthStore()
   const {
     dmChannels, setDMChannels, currentDMChannel, setCurrentDMChannel,
   } = useChatStore()
@@ -87,6 +87,9 @@ export default function DMSidebar() {
           <div className="username truncate">{user?.display_name || user?.username}</div>
           <div className="user-status">🔒 E2E Encrypted</div>
         </div>
+        <button onClick={logout} title="Logout" style={{ fontSize: '1.1rem', padding: '4px' }}>
+          ⏏
+        </button>
       </div>
 
       {showNewDM && (

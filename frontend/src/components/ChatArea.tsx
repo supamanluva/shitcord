@@ -1,18 +1,19 @@
 import { useState, useEffect, useRef, useCallback, type KeyboardEvent, type ChangeEvent, type DragEvent } from 'react'
 import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
-import { messageAPI, uploadAPI, dmAPI } from '../api/client'
+import { messageAPI, uploadAPI, dmAPI, serverAPI } from '../api/client'
 import { wsService } from '../services/websocket'
 import { encryptionService } from '../services/encryption'
 import type { Message } from '../types'
 
 export default function ChatArea({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
-  const { currentChannel, currentDMChannel, messages, setMessages, addMessage, typingUsers, activeDMCall, setActiveDMCall } = useChatStore()
+  const { currentServer, currentChannel, currentDMChannel, messages, setMessages, addMessage, typingUsers, activeDMCall, setActiveDMCall, members, setMembers, onlineUsers } = useChatStore()
   const { user } = useAuthStore()
   const [messageInput, setMessageInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [showMembers, setShowMembers] = useState(false)
   const [pendingFile, setPendingFile] = useState<{ file: File; previewUrl?: string } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -29,6 +30,20 @@ export default function ChatArea({ onMobileMenuToggle }: { onMobileMenuToggle?: 
   const dmOtherUser = isDM
     ? (currentDMChannel!.user1_id === user?.id ? currentDMChannel!.user2 : currentDMChannel!.user1)
     : null
+
+  // Load members when server changes
+  useEffect(() => {
+    if (!currentServer) return
+    const loadMembers = async () => {
+      try {
+        const { data } = await serverAPI.getMembers(currentServer.id)
+        setMembers(currentServer.id, data)
+      } catch (err) {
+        console.error('Failed to load members:', err)
+      }
+    }
+    loadMembers()
+  }, [currentServer, setMembers])
 
   // Load messages when channel changes
   useEffect(() => {
@@ -216,6 +231,7 @@ export default function ChatArea({ onMobileMenuToggle }: { onMobileMenuToggle?: 
 
       {/* Header */}
       <div className="chat-header">
+        <button className="mobile-back-btn" onClick={onMobileMenuToggle}>←</button>
         <button className="mobile-menu-btn" onClick={onMobileMenuToggle}>☰</button>
         {isDM ? (
           <>
@@ -227,18 +243,18 @@ export default function ChatArea({ onMobileMenuToggle }: { onMobileMenuToggle?: 
               <button
                 onClick={() => handleDMCall('audio')}
                 title="Voice Call"
-                className="btn-secondary header-call-btn"
+                className="header-call-btn"
               >
                 📞
               </button>
               <button
                 onClick={() => handleDMCall('video')}
                 title="Video Call"
-                className="btn-secondary header-call-btn"
+                className="header-call-btn"
               >
                 📹
               </button>
-              <span className="header-encrypted-badge">🔒 Encrypted</span>
+              <span className="header-encrypted-badge">🔒</span>
             </div>
           </>
         ) : (
@@ -252,11 +268,28 @@ export default function ChatArea({ onMobileMenuToggle }: { onMobileMenuToggle?: 
               </>
             )}
             <div className="chat-header-actions">
+              <button
+                className="header-members-btn"
+                onClick={() => setShowMembers((v) => !v)}
+                title="Members"
+              >
+                👥 {currentServer && members[currentServer.id] ? members[currentServer.id].length : ''}
+              </button>
               <span className="header-encrypted-badge">🔒 Encrypted</span>
             </div>
           </>
         )}
       </div>
+
+      {/* Mobile Members Panel */}
+      {showMembers && currentServer && (
+        <MembersPanel
+          serverId={currentServer.id}
+          members={members[currentServer.id] || []}
+          onlineUsers={onlineUsers}
+          onClose={() => setShowMembers(false)}
+        />
+      )}
 
       {/* Messages */}
       <div className="messages-container" ref={messagesContainerRef}>
@@ -570,6 +603,67 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+// Members panel overlay
+function MembersPanel({ serverId, members, onlineUsers, onClose }: {
+  serverId: string
+  members: { id: string; user_id: string; role: string; nickname: string; user?: { username: string; display_name: string; status?: string } }[]
+  onlineUsers: Set<string>
+  onClose: () => void
+}) {
+  const online = members.filter(m => onlineUsers.has(m.user_id) || m.user?.status === 'online')
+  const offline = members.filter(m => !onlineUsers.has(m.user_id) && m.user?.status !== 'online')
+
+  const roleBadge = (role: string) => {
+    switch (role) {
+      case 'owner': return '👑 '
+      case 'admin': return '⚡ '
+      case 'moderator': return '🛡️ '
+      default: return ''
+    }
+  }
+
+  return (
+    <div className="members-panel-overlay" onClick={onClose}>
+      <div className="members-panel" onClick={e => e.stopPropagation()}>
+        <div className="members-panel-header">
+          <span>Members — {members.length}</span>
+          <button onClick={onClose} style={{ fontSize: '1.2rem', padding: '4px 8px' }}>✕</button>
+        </div>
+        <div className="members-panel-list">
+          {online.length > 0 && (
+            <>
+              <div className="members-panel-category">Online — {online.length}</div>
+              {online.map(m => (
+                <div key={m.id} className="members-panel-item">
+                  <div className="members-panel-avatar" style={{ background: stringToColor(m.user?.username || '') }}>
+                    {(m.user?.display_name || m.user?.username || '?')[0].toUpperCase()}
+                    <span className="members-panel-status online" />
+                  </div>
+                  <span className="truncate">{roleBadge(m.role)}{m.nickname || m.user?.display_name || m.user?.username}</span>
+                </div>
+              ))}
+            </>
+          )}
+          {offline.length > 0 && (
+            <>
+              <div className="members-panel-category">Offline — {offline.length}</div>
+              {offline.map(m => (
+                <div key={m.id} className="members-panel-item" style={{ opacity: 0.5 }}>
+                  <div className="members-panel-avatar" style={{ background: stringToColor(m.user?.username || '') }}>
+                    {(m.user?.display_name || m.user?.username || '?')[0].toUpperCase()}
+                    <span className="members-panel-status offline" />
+                  </div>
+                  <span className="truncate">{roleBadge(m.role)}{m.nickname || m.user?.display_name || m.user?.username}</span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // Generate a consistent color from a string

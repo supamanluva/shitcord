@@ -155,6 +155,7 @@ export default function VoiceChannel({ onMobileMenuToggle }: { onMobileMenuToggl
     <div className="chat-area">
       {/* Header */}
       <div className="chat-header">
+        <button className="mobile-back-btn" onClick={onMobileMenuToggle}>←</button>
         <button className="mobile-menu-btn" onClick={onMobileMenuToggle}>☰</button>
         <span style={{ fontSize: '1.2rem', opacity: 0.6 }}>
           {isVideoChannel ? '📹' : '🔊'}

@@ -12,16 +12,34 @@ import { useChatStore } from '../stores/chatStore'
 import { useAuthStore } from '../stores/authStore'
 import { serverAPI } from '../api/client'
 import { wsService } from '../services/websocket'
+import { useMobile } from '../hooks/useMobile'
 
 export default function MainLayout() {
-  const { setServers, currentServer, currentChannel, currentDMChannel, activeDMCall, incomingCall } = useChatStore()
+  const { setServers, currentServer, currentChannel, currentDMChannel, activeDMCall, incomingCall, setCurrentChannel, setCurrentDMChannel } = useChatStore()
   const { user } = useAuthStore()
+  const isMobile = useMobile()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+
+  // On mobile, show sidebar by default when no channel is selected
+  // mobileView: 'sidebar' | 'chat'
+  const hasActiveChat = !!(currentChannel || currentDMChannel || activeDMCall)
+  const [mobileView, setMobileView] = useState<'sidebar' | 'chat'>(hasActiveChat ? 'chat' : 'sidebar')
 
   const closeMobileSidebar = useCallback(() => setMobileSidebarOpen(false), [])
 
+  // When a channel/DM is selected on mobile, switch to chat view
   useEffect(() => {
-    // Load user's servers
+    if (isMobile && (currentChannel || currentDMChannel)) {
+      setMobileView('chat')
+    }
+  }, [currentChannel, currentDMChannel, isMobile])
+
+  // Mobile back: go back to sidebar view and clear selection
+  const handleMobileBack = useCallback(() => {
+    setMobileView('sidebar')
+  }, [])
+
+  useEffect(() => {
     const loadServers = async () => {
       try {
         const { data } = await serverAPI.getMyServers()
@@ -31,63 +49,111 @@ export default function MainLayout() {
       }
     }
     loadServers()
-
-    // Connect WebSocket
     wsService.connect()
-
-    return () => {
-      wsService.disconnect()
-    }
+    return () => { wsService.disconnect() }
   }, [setServers])
 
-  // Subscribe to current server for events
   useEffect(() => {
     if (currentServer) {
       wsService.subscribeServer(currentServer.id)
     }
   }, [currentServer])
 
-  // Subscribe to current channel
   useEffect(() => {
     if (currentChannel) {
       wsService.subscribeChannel(currentChannel.id)
-      return () => {
-        wsService.unsubscribeChannel(currentChannel.id)
-      }
+      return () => { wsService.unsubscribeChannel(currentChannel.id) }
     }
   }, [currentChannel])
 
-  // Subscribe to DM channel for events
   useEffect(() => {
     if (currentDMChannel) {
       wsService.subscribeChannel(currentDMChannel.id)
-      return () => {
-        wsService.unsubscribeChannel(currentDMChannel.id)
-      }
+      return () => { wsService.unsubscribeChannel(currentDMChannel.id) }
     }
   }, [currentDMChannel])
 
-  // Close mobile sidebar when a channel or DM is selected
+  // Non-mobile: close drawer sidebar when channel selected
   useEffect(() => {
     closeMobileSidebar()
   }, [currentChannel, currentDMChannel, closeMobileSidebar])
 
   const isVoiceChannel = currentChannel?.type === 'voice' || currentChannel?.type === 'video'
 
+  // ==========================================
+  // MOBILE LAYOUT: show either sidebar OR chat, never both
+  // ==========================================
+  if (isMobile) {
+    // Sidebar view
+    if (mobileView === 'sidebar' || (!currentChannel && !currentDMChannel && !activeDMCall)) {
+      return (
+        <div className="main-layout mobile-layout">
+          <ServerList />
+          {currentServer ? <ChannelSidebar /> : <DMSidebar />}
+          {incomingCall && <IncomingCallModal />}
+        </div>
+      )
+    }
+
+    // Chat view
+    return (
+      <div className="main-layout mobile-layout mobile-chat-view">
+        {currentServer ? (
+          <>
+            {currentChannel ? (
+              isVoiceChannel ? (
+                <VoiceChannel onMobileMenuToggle={handleMobileBack} />
+              ) : (
+                <ChatArea onMobileMenuToggle={handleMobileBack} />
+              )
+            ) : (
+              <div className="chat-area">
+                <div className="chat-header">
+                  <button className="mobile-back-btn" onClick={handleMobileBack}>← Back</button>
+                </div>
+                <div className="empty-state">
+                  <div className="emoji">👈</div>
+                  <h3>Select a channel</h3>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {activeDMCall ? (
+              <DMCallView />
+            ) : currentDMChannel ? (
+              <ChatArea onMobileMenuToggle={handleMobileBack} />
+            ) : (
+              <div className="chat-area" style={{ flex: 1 }}>
+                <div className="chat-header">
+                  <button className="mobile-back-btn" onClick={handleMobileBack}>← Back</button>
+                </div>
+                <div className="empty-state">
+                  <div className="emoji">💩</div>
+                  <h3>Welcome to Shitcord!</h3>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {incomingCall && <IncomingCallModal />}
+      </div>
+    )
+  }
+
+  // ==========================================
+  // DESKTOP LAYOUT: sidebar + chat side by side (existing behavior)
+  // ==========================================
   return (
     <div className="main-layout">
-      {/* Mobile sidebar backdrop */}
       {mobileSidebarOpen && (
         <div className="mobile-sidebar-backdrop" onClick={closeMobileSidebar} />
       )}
 
       <div className={`mobile-sidebar-container ${mobileSidebarOpen ? 'open' : ''}`}>
         <ServerList />
-        {currentServer ? (
-          <ChannelSidebar />
-        ) : (
-          <DMSidebar />
-        )}
+        {currentServer ? <ChannelSidebar /> : <DMSidebar />}
       </div>
 
       {currentServer ? (
@@ -140,7 +206,6 @@ export default function MainLayout() {
         </>
       )}
 
-      {/* Global: Incoming call modal */}
       {incomingCall && <IncomingCallModal />}
     </div>
   )

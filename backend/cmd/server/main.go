@@ -5,6 +5,9 @@ import (
 	"log"
 	"os"
 
+	"path/filepath"
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -137,13 +140,34 @@ func main() {
 	app.Use("/ws", middleware.AuthWSUpgrade())
 	app.Get("/ws", ws.HandleWebSocket(hub))
 
-	// Serve frontend static files
+	// Serve frontend static files with proper cache headers
 	frontendDir := getEnv("FRONTEND_DIR", "../frontend/dist")
+
+	// Middleware: set cache headers based on file type
+	app.Use(func(c *fiber.Ctx) error {
+		p := c.Path()
+		// Hashed assets get long cache
+		if strings.HasPrefix(p, "/assets/") {
+			c.Set("Cache-Control", "public, max-age=31536000, immutable")
+			return c.Next()
+		}
+		// HTML and root requests: never cache
+		if p == "/" || strings.HasSuffix(p, ".html") {
+			c.Set("Cache-Control", "no-store, no-cache, must-revalidate")
+			c.Set("Pragma", "no-cache")
+			c.Set("Expires", "0")
+		}
+		return c.Next()
+	})
+
 	app.Static("/", frontendDir)
 
 	// SPA catch-all: serve index.html for any non-API/non-file route
 	app.Get("/*", func(c *fiber.Ctx) error {
-		return c.SendFile(frontendDir + "/index.html")
+		c.Set("Cache-Control", "no-store, no-cache, must-revalidate")
+		c.Set("Pragma", "no-cache")
+		c.Set("Expires", "0")
+		return c.SendFile(filepath.Join(frontendDir, "index.html"))
 	})
 
 	// Start server
