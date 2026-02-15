@@ -45,6 +45,7 @@ export default function IncomingCallModal() {
         dmChannelId: incomingCall.dmChannelId,
         remoteUserId: incomingCall.fromUserId,
         callType: incomingCall.callType,
+        isCaller: false,
       })
 
       setIncomingCall(null)

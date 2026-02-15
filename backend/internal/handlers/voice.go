@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
@@ -9,6 +11,36 @@ import (
 	"github.com/shitcord/backend/internal/models"
 	"github.com/shitcord/backend/internal/ws"
 )
+
+// GetICEServers returns the STUN/TURN server configuration for WebRTC
+func GetICEServers(c *fiber.Ctx) error {
+	iceServers := []fiber.Map{}
+
+	// STUN server
+	stunServer := os.Getenv("STUN_SERVER")
+	if stunServer == "" {
+		stunServer = "stun:stun.l.google.com:19302"
+	}
+	iceServers = append(iceServers, fiber.Map{
+		"urls": stunServer,
+	})
+
+	// TURN server (critical for mobile / symmetric NAT)
+	turnServer := os.Getenv("TURN_SERVER")
+	turnUsername := os.Getenv("TURN_USERNAME")
+	turnPassword := os.Getenv("TURN_PASSWORD")
+	if turnServer != "" {
+		iceServers = append(iceServers, fiber.Map{
+			"urls":       turnServer,
+			"username":   turnUsername,
+			"credential": turnPassword,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"ice_servers": iceServers,
+	})
+}
 
 // JoinVoiceChannel adds a user to a voice channel
 func JoinVoiceChannel(c *fiber.Ctx) error {

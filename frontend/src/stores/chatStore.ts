@@ -33,8 +33,8 @@ interface ChatState {
   setIncomingCall: (call: IncomingCall | null) => void
 
   // Active DM call
-  activeDMCall: { dmChannelId: string; remoteUserId: string; callType: 'audio' | 'video' } | null
-  setActiveDMCall: (call: { dmChannelId: string; remoteUserId: string; callType: 'audio' | 'video' } | null) => void
+  activeDMCall: { dmChannelId: string; remoteUserId: string; callType: 'audio' | 'video'; isCaller: boolean } | null
+  setActiveDMCall: (call: { dmChannelId: string; remoteUserId: string; callType: 'audio' | 'video'; isCaller: boolean } | null) => void
 
   // Messages
   messages: Record<string, Message[]>  // channelId -> messages

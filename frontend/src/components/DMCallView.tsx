@@ -16,13 +16,29 @@ export default function DMCallView() {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideoRef = useRef<HTMLVideoElement>(null)
+  const remoteAudioRef = useRef<HTMLAudioElement>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const isVideo = activeDMCall?.callType === 'video'
 
+  // Ensure remote media plays on mobile when stream becomes available
+  useEffect(() => {
+    if (!remoteStream) return
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream
+      remoteVideoRef.current.play().catch(() => {})
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = remoteStream
+      remoteAudioRef.current.play().catch(() => {})
+    }
+  }, [remoteStream])
+
   // Start media and WebRTC when call becomes active
   useEffect(() => {
     if (!activeDMCall) return
+
+    const isCaller = activeDMCall.isCaller
 
     const startCall = async () => {
       try {
@@ -34,6 +50,8 @@ export default function DMCallView() {
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = localStream
+          // Explicitly play for mobile browsers
+          localVideoRef.current.play().catch(() => {})
         }
 
         // Set remote stream handler
@@ -41,6 +59,8 @@ export default function DMCallView() {
           setRemoteStream(stream)
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream
+            // Explicitly play for mobile browsers (required for unmuted media)
+            remoteVideoRef.current.play().catch(() => {})
           }
           setIsConnected(true)
           // Call connected — stop any ring tone
@@ -51,8 +71,14 @@ export default function DMCallView() {
           handleEndCall()
         })
 
-        // Initiate WebRTC connection to remote user
-        await webrtcService.callUser(activeDMCall.remoteUserId, 'User')
+        if (isCaller) {
+          // CALLER: Do NOT send an offer yet. Wait for callee to accept.
+          // The offer will be sent when we receive DM_CALL_ACCEPT.
+        } else {
+          // CALLEE: We just accepted. Our local media is ready.
+          // Process any queued offer from the caller (it arrived before we had media).
+          await webrtcService.processPendingOffer()
+        }
 
         // Start call duration timer
         timerRef.current = setInterval(() => {
@@ -66,11 +92,14 @@ export default function DMCallView() {
 
     startCall()
 
-    // Listen for call acceptance from the WebSocket
-    const handleCallAccept = (data: unknown) => {
+    // Listen for call acceptance from the WebSocket (caller side)
+    const handleCallAccept = async (data: unknown) => {
       const d = data as { from_user_id: string }
       if (d.from_user_id === activeDMCall.remoteUserId) {
-        // Remote user accepted, WebRTC should auto-connect via signaling
+        // Remote user accepted — NOW send the WebRTC offer
+        console.log('Call accepted, sending WebRTC offer')
+        ringToneService.stopAll()
+        await webrtcService.callUser(activeDMCall.remoteUserId, 'User')
       }
     }
     wsService.on('DM_CALL_ACCEPT', handleCallAccept)
@@ -189,6 +218,9 @@ export default function DMCallView() {
           </div>
         )}
       </div>
+
+      {/* Hidden audio element — ensures remote audio always plays, even for voice-only calls */}
+      <audio ref={remoteAudioRef} autoPlay playsInline />
 
       {/* Call controls */}
       <div className="voice-controls">

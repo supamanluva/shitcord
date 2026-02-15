@@ -195,6 +195,7 @@ export default function ChatArea({ onMobileMenuToggle }: { onMobileMenuToggle?: 
       dmChannelId: currentDMChannel.id,
       remoteUserId: dmOtherUser.id,
       callType,
+      isCaller: true,
     })
     // Start outgoing ring tone so caller knows it's ringing
     ringToneService.startOutgoingRing()

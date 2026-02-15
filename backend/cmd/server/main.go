@@ -133,6 +133,7 @@ func main() {
 
 	// Voice/Video signaling
 	voice := protected.Group("/voice")
+	voice.Get("/ice-servers", handlers.GetICEServers)
 	voice.Post("/join/:channelId", handlers.JoinVoiceChannel)
 	voice.Post("/leave/:channelId", handlers.LeaveVoiceChannel)
 

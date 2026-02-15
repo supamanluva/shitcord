@@ -48,6 +48,7 @@ export default function UserProfilePopup({ targetUser, position, onClose }: User
         dmChannelId: data.id,
         remoteUserId: targetUser.id,
         callType,
+        isCaller: true,
       })
 
       // Start outgoing ring tone so caller knows it's ringing
